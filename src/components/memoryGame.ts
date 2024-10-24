@@ -75,7 +75,7 @@ select {
   </div>
   <div class="board board${this.state.gridSize}">
   ${repeat(
-      this.cards,
+      this.state.cards,
       (card) => card.name,
       (card, index) => html`
   <memory-card
@@ -90,8 +90,8 @@ select {
   </div>
   `;
   }
-  handleGridSizeChange(event: Event) {
-    this.cards = this.cardService.initializeCards(event);
+  async handleGridSizeChange(event: Event) {
+   await this.cardService.initializeCards(event);
     this.requestUpdate();
   }
   handleCardClick(index: number) {

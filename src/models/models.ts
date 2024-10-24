@@ -16,5 +16,6 @@ export type Card = {
     lockBoard: boolean;
     attempts: number;
     gridSize?: number;
+    cards: Card[];
     };
   
