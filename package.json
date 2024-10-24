@@ -1,1 +1,1 @@
-{"name":"memory-game","version":"1.0.0","scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},"devDependencies":{"@types/node":"^22.7.9","typescript":"^5.6.3"},"dependencies":{"inversify":"^6.0.3","lit":"^3.2.1","reflect-metadata":"^0.2.2","vite":"^5.4.10"}}
+{"name":"memory-game","version":"1.0.0","scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},"devDependencies":{"@types/node":"^22.7.9","typescript":"^5.6.3"},"dependencies":{"firebase":"^11.0.1","inversify":"^6.0.3","lit":"^3.2.1","reflect-metadata":"^0.2.2","vite":"^5.4.10"}}

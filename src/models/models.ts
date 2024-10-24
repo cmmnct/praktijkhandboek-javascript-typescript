@@ -9,6 +9,13 @@ export type Card = {
     card1?: string;
     card2?: string;
   };
+
+  export type Result = {
+    date: string;
+    attempts: number;
+    gridSize: number;
+    score: number
+  }
   
   export type State = {
     firstCard: Card | null;
@@ -17,5 +24,6 @@ export type Card = {
     attempts: number;
     gridSize?: number;
     cards: Card[];
+    results: Result[]
     };
   
