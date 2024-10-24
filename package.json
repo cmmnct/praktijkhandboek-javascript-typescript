@@ -1,0 +1,17 @@
+{
+  "name": "uitwerking-h4",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "lit": "^3.1.4",
+    "vite": "^5.3.1"
+  }
+}
