@@ -11,6 +11,7 @@ import {
     saveToLocalStorage,
 } from "../utils/localStorageHelper";
 import { injectable } from "inversify";
+
 @injectable()
 export class StateService {
     private user: User | null = null;
@@ -25,10 +26,12 @@ export class StateService {
     };
     constructor() {
         this.initAuthListener();
+        
     }
     private initAuthListener() {
         onAuthStateChanged(auth, (user) => {
             this.user = user;
+    
         });
     }
     async saveState() {

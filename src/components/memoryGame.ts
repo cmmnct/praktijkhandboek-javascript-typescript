@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit";
 import { property, customElement } from "lit/decorators.js";
 import "./memoryCard";
 import "./loginComponent";
+import "./resultComponent";
 import { CardService } from '../services/cardService';
 import { StateService } from "../services/stateService";
 import { repeat } from 'lit/directives/repeat.js';
@@ -15,6 +16,8 @@ import { TYPES } from '../types';
 export class MemoryGame extends LitElement {
 @property({ type: Boolean }) loggedIn: boolean = false;
 @property({ type: Boolean }) loginState: boolean = false;
+@property({ type: Boolean }) showResults: boolean = false;
+
 cardService: CardService;
 stateService: StateService;
 
@@ -85,6 +88,7 @@ select {
         ? html` <div class="login-indicator">
             Ingelogd als: ${auth.currentUser?.email}
             <button @click="${this.logout}">Logout</button>
+            <button @click="${() => this.showResults = true}">Show Stats</button>
           </div>`
         : html` <div class="login-indicator">
             <button @click="${this.login}">Login</button>
@@ -122,8 +126,21 @@ select {
             ></login-component>
           </div>`
         : ""}
+        ${this.showResults
+          ? html`
+          <result-component
+          .results="${this.stateService.getState().results}"
+          @close-popup="${this.closePopup}"
+          ></result-component>
+          `
+          : ""}
     `;
   }
+
+
+  closePopup() {
+    this.showResults = false;
+    }
 
   login() {
     this.loginState = true;
