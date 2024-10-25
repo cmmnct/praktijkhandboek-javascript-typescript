@@ -1,10 +1,16 @@
-import { State } from '../models/models';
-import { User } from 'firebase/auth';
-import { injectable } from 'inversify';
+import { auth, firestore } from "../../firebaseConfig";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { State } from "../models/models";
 import {
-    saveToLocalStorage,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+} from "firebase/auth";
+import {
     loadFromLocalStorage,
-} from '../utils/localStorageHelper';
+    saveToLocalStorage,
+} from "../utils/localStorageHelper";
+import { injectable } from "inversify";
 @injectable()
 export class StateService {
     private user: User | null = null;
@@ -20,18 +26,42 @@ export class StateService {
     constructor() {
         this.initAuthListener();
     }
-    private initAuthListener() { }
-    async saveState() {
-        await saveToLocalStorage('memoryGameState', this.state);
+    private initAuthListener() {
+        onAuthStateChanged(auth, (user) => {
+            this.user = user;
+        });
     }
-    async loadState() {
-        const savedState = await loadFromLocalStorage('memoryGameState');
-        if (savedState) {
-            return savedState;
+    async saveState() {
+        const userId = this.user?.uid;
+        if (userId) {
+            const stateRef = doc(firestore, `users/${userId}/gameState/state`);
+            await setDoc(stateRef, this.state);
+        } else {
+            saveToLocalStorage("memoryGameState", this.state);
         }
     }
-    getState(): State { return this.state }
-    updateState(updatedState: Partial<State>) { console.log('State updated') }
+    async loadState() {
+        const userId = this.user?.uid;
+        if (userId) {
+            const stateRef = doc(firestore, `users/${userId}/gameState/state`);
+            const stateDoc = await getDoc(stateRef);
+            if (stateDoc.exists()) {
+                this.state = stateDoc.data() as State;
+            }
+        } else {
+            const savedState = loadFromLocalStorage("memoryGameState");
+            if (savedState) {
+                this.state = savedState;
+            }
+        }
+    }
+    getState(): State {
+        return this.state;
+    }
+    updateState(updatedState: Partial<State>) {
+        this.state = { ...this.state, ...updatedState };
+        this.saveState();
+    }
     resetState(init: boolean = false) {
         this.state.firstCard = null;
         this.state.secondCard = null;
@@ -43,14 +73,33 @@ export class StateService {
         }
     }
     async login(email: string, password: string) {
-        if (email === 'John Doe' && password === 'player')
-            return 'succesvol ingelogd!'
-        else return 'onbekende gebruiker of verkeerd wachtwoord'
+        try {
+            const userCredential = await signInWithEmailAndPassword(
+                auth,
+                email,
+                password
+            );
+            return `Logged in as ${userCredential.user.email}`;
+        } catch (error: any) {
+            return `Error: ${error.message}`;
+        }
     }
     async register(email: string, password: string) {
-        if (email === 'John Doe' && password === 'player')
-            return 'succesvol aangemeld!';
-        else return 'gebruiker bestaat al';
+        try {
+            const userCredential = await createUserWithEmailAndPassword(
+                auth,
+                email,
+                password
+            );
+            return `Registered as ${userCredential.user.email}`;
+        } catch (error: any) {
+            return `Error: ${error.message}`;
+        }
     }
-    logout() { console.log('logged out') }
+    async logout(updateCallback: () => void) {
+        auth.signOut().then(() => {
+            this.resetState(true);
+            updateCallback();
+        });
+    }
 }

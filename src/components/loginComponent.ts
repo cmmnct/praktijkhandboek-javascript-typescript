@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { container } from "../../inversify.config";
 import { StateService } from "../services/stateService";
-import { TYPES } from '../../inversify.config';
+import { TYPES } from '../types';
 
 @customElement("login-component")
 export class LoginComponent extends LitElement {
