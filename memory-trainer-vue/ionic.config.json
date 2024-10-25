@@ -1,0 +1,7 @@
+{
+  "name": "memory-trainer-vue",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
