@@ -30,7 +30,8 @@ export type Card = {
 
   export interface UserCredentials {
     displayName: string;
-    password: string;
+    oldPassword: string;
+    newPassword:string;
     birthdate: string;
     avatarUrl: string;
   }

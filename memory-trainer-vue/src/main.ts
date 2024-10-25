@@ -86,3 +86,12 @@ const app = createApp(App)
 router.isReady().then(() => {
   app.mount('#app');
 });
+
+import { addIcons } from 'ionicons';
+import { personCircleOutline, gridOutline, barChartOutline } from 'ionicons/icons';
+
+addIcons({
+  'person-circle-outline': personCircleOutline,
+  'grid-outline': gridOutline,
+  'bar-chart-outline': barChartOutline,
+});
