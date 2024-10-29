@@ -48,37 +48,35 @@ cursor: pointer;
     render() {
         const months = this.getAvailableMonths();
         return html`
-    Hoofdstuk 9 – Datavisualisatie
-    160
-    <div class="overlay" @click="${this.closePopup}"></div>
-    <div class="popup">
-    <div>
-    <label for="displayMode">Weergave:</label>
-    <select id="displayMode" @change="${this.changeDisplayMode}">
-    <option
-    value="average"
-    ?selected="${this.displayMode === "average"}"
-    >
-    Gemiddelde
-    </option>
-    <option value="best" ?selected="${this.displayMode === "best"}">
-    Beste score
-    </option>
-    </select>
-    <label for="selectedMonth">Maand:</label>
-    <select id="selectedMonth" @change="${this.changeMonth}">
-    ${months.map(
-            (month) => html`<option value="${month}">${month}</option>`
-        )}
-    </select>
-    </div>
-    <div class="chart-container">
-    <canvas id="resultsChart"></canvas>
-    </div>
-    <button @click="${this.closePopup}">Sluiten</button>
-    </div>
-    `;
-    }
+                    <div class="overlay" @click="${this.closePopup}"></div>
+                    <div class="popup">
+                    <div>
+                    <label for="displayMode">Weergave:</label>
+                    <select id="displayMode" @change="${this.changeDisplayMode}">
+                    <option
+                    value="average"
+                    ?selected="${this.displayMode === "average"}"
+                    >
+                    Gemiddelde
+                    </option>
+                    <option value="best" ?selected="${this.displayMode === "best"}">
+                    Beste score
+                    </option>
+                    </select>
+                    <label for="selectedMonth">Maand:</label>
+                    <select id="selectedMonth" @change="${this.changeMonth}">
+                    ${months.map(
+                            (month) => html`<option value="${month}">${month}</option>`
+                        )}
+                    </select>
+                    </div>
+                    <div class="chart-container">
+                    <canvas id="resultsChart"></canvas>
+                    </div>
+                    <button @click="${this.closePopup}">Sluiten</button>
+                    </div>
+                    `;
+            }
 
     updated() {
         this.renderChart();
@@ -221,3 +219,4 @@ cursor: pointer;
         );
     }
 }
+
