@@ -52,7 +52,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
-
+import { UserCredentials } from '@/models/models';
 import { useGameStore } from '@/stores/gameStore';
 import CardComponent from '@/components/CardComponent.vue';
 import UserSettingsComponent from '@/components/UserSettingsComponent.vue'
