@@ -22,7 +22,7 @@ export type Card = {
     secondCard: Card | null;
     lockBoard: boolean;
     attempts: number;
-    gridSize?: number;
+    gridSize: number;
     cards: Card[]; // voeg deze regel toe
     results:Result[];
     stateLoaded:Boolean
@@ -30,8 +30,7 @@ export type Card = {
 
   export interface UserCredentials {
     displayName: string;
-    oldPassword: string;
-    newPassword:string;
+    password: string;
     birthdate: string;
     avatarUrl: string;
   }
