@@ -1,4 +1,4 @@
-import { Card, CardSet, Result, State } from "../models/models";
+import { Card, CardSet, Result } from "../models/models";
 import { GameLogic } from "../utils/gameLogic";
 import { inject, injectable } from "inversify";
 import { TYPES } from "../types";
