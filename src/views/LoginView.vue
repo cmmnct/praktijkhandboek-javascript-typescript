@@ -15,7 +15,6 @@
                             <ion-input placeholder="Wachtwoord" type="password" v-model="password" label="Wachtwoord: ">
                             </ion-input>
                             <ion-button @click="login">Inloggen</ion-button>
-                            
                             <ion-button @click="router.push('/home')">Terug</ion-button>
                         </ion-card-content>
                     </ion-card>
