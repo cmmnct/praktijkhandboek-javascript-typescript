@@ -11,6 +11,11 @@
      <ion-button @click=" componentState.showGridSizeSelector = true">
         <ion-icon slot="icon-only" name="grid-outline"></ion-icon>
      </ion-button>
+     <!-- Knop voor het openen van het ResultComponent -->
+ <ion-button @click="componentState.showResults = true">
+  <ion-icon slot="icon-only" name="bar-chart-outline"></ion-icon>
+</ion-button>
+
 </ion-buttons>
 
 
@@ -26,6 +31,13 @@
       <ion-spinner v-else />
     </ion-content>
     <!-- Modals -->
+    <UserSettingsComponent :isOpen="componentState.showUserSettings"  
+                       :userCredentials="gameStore.userCredentials"
+                       @close="componentState.showUserSettings = false"
+                       @UpdateProfile="updateUserProfile" 
+                       :onLogout="logout" 
+/>
+
     <!-- gridSizeSelector -->
     <ion-modal 
           :is-open="componentState.showGridSizeSelector" 
@@ -49,7 +61,8 @@
         </ion-list>
       </ion-content>
     </ion-modal>
-
+<!-- ResultsComponent Modal -->
+<ResultsComponent :isOpen="componentState.showResults" :results="gameStore.state.results" @close="componentState.showResults = false" />
   </ion-page>
 </template>
 
@@ -57,15 +70,41 @@
 import { ref, reactive, onMounted} from 'vue';
 import { useGameStore } from '@/stores/gameStore';
 import CardComponent from '@/components/CardComponent.vue';
+import UserSettingsComponent from '@/components/UserSettingsComponent.vue';
+import ResultsComponent from '@/components/ResultsComponent.vue';  
+import { useRouter } from 'vue-router';
+import { UserCredentials } from '@/models/models';
+
+
+const router = useRouter();
+const passwordError = ref();
 
 const gameStore = useGameStore();
 const loading = ref(true);
-const showGridSizeSelector = ref(false);
-const isSettingsOpen = ref(false);
 
 const handleCardClick = (index:number) => {
   gameStore.handleCardClick(index);
 };
+
+async function updateUserProfile(updatedCredentials: UserCredentials, avatarFile?: File) {
+// we kunnen een aantal console.log statements toevoegen voor debugging
+  console.log('GameView is calling GameStore updateUserProfile with:', updatedCredentials, avatarFile);
+  passwordError.value = '';
+  try {
+    await gameStore.updateUserProfile(updatedCredentials, avatarFile);
+    console.log('UpdateUserProfile successfully executed');
+  } catch (error: any) {
+    passwordError.value = error.message;
+    console.log("updateProfiel says: " + error.message)
+  }
+}
+
+async function logout() {
+  const success = await gameStore.handleAuthentication("logout");
+  if (success) {
+    router.push({ path: '/login' });
+  }
+}
 
 async function handleGridSizeChange(size: number) {
   componentState.showGridSizeSelector = false;
@@ -74,13 +113,13 @@ async function handleGridSizeChange(size: number) {
   componentState.loading = false;
 }
 
-
-const componentState= reactive({
-  loading : true,
+const componentState = reactive({
+  loading: true,
   showGridSizeSelector: false,
-  showUserSettings : false
-
+  showUserSettings: false,
+  showResults: false  // Voeg deze toe voor het ResultComponent
 })
+
 
 
 onMounted(async () => {

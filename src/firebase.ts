@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 const firebaseConfig = {
@@ -24,3 +24,11 @@ console.log('Firebase Auth persistence is set to local');
 .catch((error) => {
 console.error('Failed to set persistence:', error);
 });
+
+// firebase.ts
+export const firebaseAuthInitialized = new Promise((resolve, reject) => {
+    onAuthStateChanged(auth, user => {
+      resolve(user);  // Resolve the promise when Firebase is done
+    }, reject);
+  });
+  

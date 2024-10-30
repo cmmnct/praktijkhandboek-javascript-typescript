@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import { cardService } from '@/services/cardService';
-import { db, auth } from '@/firebase';
-import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db, storage, auth } from '@/firebase';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { State, Result, UserCredentials } from '@/models/models';
- 
-// de functie useGameStore stelt de store aan de hele applicatie beschikbaar. alle eigenschappen die we nodig hebben in de componenten en de staat. Dit volgt overigens ook het singleton design pattern
+import { uploadBytes, getDownloadURL, ref as firebaseStorageRef } from 'firebase/storage';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
+import { useNotificationStore } from './notificationStore'; // Importeer de notificationStore
+
+
 
 export const useGameStore = defineStore('gameStore', () => {
   const state = reactive<State>({
@@ -19,28 +22,21 @@ export const useGameStore = defineStore('gameStore', () => {
     results: [],
     stateLoaded: false,
   });
-
-// de gegevens van de gebruiker halen we uit het auth object van Firebase en het object userCredentials wordt een reactief object voor later gebruik in de user settings. Hiervoor hebben we o.a. ook een datum in het juiste format voor nodig (defaultBirthdate).
-
+  const notificationStore = useNotificationStore(); // Initialiseer de notificationStore
 
   const user = ref(auth.currentUser);
   const userCredentials = reactive<UserCredentials>({
     displayName: '',
-    password: '',
+    oldPassword: '',
+    newPassword: '',
     birthdate: '',
     avatarUrl: '',
   });
   const defaultBirthdate = new Date().toISOString().substring(0, 10);
+  type Action = 'login' | 'signup' | 'logout' | 'authChange';
 
-// handleAuthentication is de centrale functie die alle taken rond authenticatie afhandelt zoals inloggen, uitloggen, aanmelden, zelfs als er om wat voor reden dan ook iets verandert in de authenticatie. Middels switch…case wordt gekeken welke actie uitgevoerd moet worden en wat voor impact dat op de state van de applicatie heeft. Binnen deze functie wordt gebruik gemaakt van een IIFE (Immediately Invoked Function Expression), een functie die gedeclareerd en direct uitgevoerd wordt, zodat we een return statement hebben op basis van de switch…case statement. Let ook op het consistent gebruik van async… await functies en het afhandelen van fouten met catch… throw.
-
-type Action = 'login' | 'signup' | 'logout' | 'authChange';
-
-const handleAuthentication = async (action: Action, email?: string, password?: string, currentUser?: any): Promise<boolean> => {
+  const handleAuthentication = async (action: Action, email?: string, password?: string, currentUser?: any): Promise<boolean> => {
     try {
-
-// start van de IIFE (Immediately Invoked Function Expression)
-
       const userCredential = await (async () => {
         switch (action) {
           case 'login':
@@ -55,25 +51,24 @@ const handleAuthentication = async (action: Action, email?: string, password?: s
 
           case 'authChange':
             return currentUser ? { user: currentUser } : null; // Simuleer een userCredential als er een currentUser is
+
           default:
             throw new Error('Invalid auth action');
         }
-      })(); 
-
-// Sluit de IIFE (Immediately Invoked Function Expression)
+      })(); // Sluit de IIFE (Immediately Invoked Function Expression)
 
       const user = userCredential?.user || null;
-
-// Hier worden twee functies achter elkaar uitgevoerd (loadUserProfile en loadState) die technisch best in één functie hadden kunnen staan. Echter, als we het principe van het scheiden van verantwoordelijkheden aanhouden is het beter twee functies te gebruiken, één voor het laden van de gebruikersgegevens, en één voor het laden van de state. Op deze manier blijft het overzichtelijker en zijn de beide functies onafhankelijk van elkaar te gebruiken, te ontwikkelen en te testen.
 
       if (user) {
         user.value = user;
         await loadUserProfile();
         await loadState();
       } else {
+        // user.value = null;
         resetState();
         state.stateLoaded = false;
       }
+
       return true;
     } catch (error) {
       console.error(`Authentication action "${action}" failed`, error);
@@ -81,9 +76,7 @@ const handleAuthentication = async (action: Action, email?: string, password?: s
     }
   };
 
-// onAuthStateChanged is de eventListener van Firebase die de veranderingen in de authorisatie detecteert en de zojuist besproken handler functie handleAuthentication activeert. Let wel, we gebruiken deze handler functie dus zowel na een user interactie als na een ‘spontaan’ opgetreden wijziging in de authenticatie.
-
-onAuthStateChanged(auth, (currentUser) => {
+  onAuthStateChanged(auth, (currentUser) => {
     if (currentUser) {
       handleAuthentication('authChange', undefined, undefined, currentUser);
     } else {
@@ -92,23 +85,20 @@ onAuthStateChanged(auth, (currentUser) => {
     }
   });
 
-// Deze functie wordt steeds aangeroepen als er iets gebeurt op het vlak van authorisatie en gebruikersgegevens. 
-
   const loadUserProfile = async () => {
     if (!auth.currentUser) {
-      console.error('No current user in Firebase Auth.');
+      notificationStore.addNotification('Er is een fout opgetreden bij het laden van uw gegevens.', 'danger');
       return;
     }
-
-// Het gebruiken van de API van Firebase (doc en getDoc) om Firebase-documenten met gebruikersgegevens op te slaan, op te vragen en te muteren. Bekijk de pagina https://firebase.google.com/docs/firestore/query-data/get-data als u meer informatie zoekt over deze API.
-
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
       setUserProfile(userDoc.data());
+      notificationStore.addNotification('Uw gegevens met succes geladen.', 'success');
     } else {
       console.log('User document does not exist, creating a new one.');
+      notificationStore.addNotification('Geen gebruikersgegevens gevonden, nieuwe aangemaakt.', 'warning');
       const defaultData = {
         displayName: auth.currentUser.displayName || '',
         birthdate: defaultBirthdate,
@@ -118,8 +108,6 @@ onAuthStateChanged(auth, (currentUser) => {
       setUserProfile(defaultData);
     }
 
-// Het gebruiken van de API van Firebase (onSnapshot) om naar realtime wijzigingen van documenten in de database te luisteren en de wijzigingen door te geven. Zie ook: https://firebase.google.com/docs/firestore/query-data/listen .
- 
     onSnapshot(userDocRef, (doc) => {
       if (doc.exists()) {
         setUserProfile(doc.data());
@@ -127,15 +115,96 @@ onAuthStateChanged(auth, (currentUser) => {
     });
   };
 
-// We stellen de userCredentials in op basis van de actuele gegeven uit de Firebase database óf gebruiken een standaard gebruikersnaam, datum en avatar.
-
   const setUserProfile = (data: any) => {
-    userCredentials.displayName = data?.displayName || 'user';
+    userCredentials.displayName = data?.displayName || '';
     userCredentials.birthdate = data?.birthdate || defaultBirthdate;
     userCredentials.avatarUrl = data?.avatarUrl || 'https://ionicframework.com/docs/img/demos/avatar.svg';
   };
 
-// De volgende functie komen ons als het goed is bekend voor, en stond in vergelijkbare vorm ook in ons vorige project. Deze hebben verder geen toelichting nodig.
+  const updateUserProfile = async (
+    updatedCredentials: UserCredentials,
+    avatarFile?: File
+  ): Promise<boolean> => {
+    // early return als de gebruiker niet ingelogd blijkt te zijn
+    if (!auth.currentUser) {
+      console.error("No current user found.");
+      return false;
+    }
+
+    try {
+      // Reauthenticate and update password if needed
+      if (shouldReauthenticate(updatedCredentials)) {
+        console.log(shouldReauthenticate(updatedCredentials))
+        await reauthenticateAndChangePassword(updatedCredentials);
+        return true;
+      }
+      else {
+        // Upload avatar if provided and get the new URL
+        const avatarUrl = avatarFile
+          ? await uploadAvatar(auth.currentUser.uid, avatarFile)
+          : updatedCredentials.avatarUrl;
+
+        // Update Firestore with the new profile data
+        await updateFirestoreProfile({
+          displayName: updatedCredentials.displayName,
+          birthdate: updatedCredentials.birthdate,
+          avatarUrl,
+        });
+        notificationStore.addNotification('uw gegevens zijn met succes aangepast...', 'success');
+        // Reload the user profile to reflect the changes in the state
+        await loadUserProfile();
+        return true;
+      }
+
+    } catch (error) {
+      notificationStore.addNotification('Er is een fout opgetreden bij het updaten van uw gegevens.', 'error');
+      return false;
+    }
+  };
+
+  const shouldReauthenticate = (credentials: UserCredentials): boolean => {
+    return (
+      credentials.oldPassword &&
+      credentials.newPassword &&
+      credentials.oldPassword !== credentials.newPassword
+    ) as boolean;
+  };
+
+  const reauthenticateAndChangePassword = async (
+    credentials: UserCredentials
+  ): Promise<void> => {
+    console.log('update password started')
+    try {
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser!.email!,
+        credentials.oldPassword
+      );
+      await reauthenticateWithCredential(auth.currentUser!, credential);
+      await firebaseUpdatePassword(auth.currentUser!, credentials.newPassword);
+      notificationStore.addNotification('Wachtwoord met succes bijgewerkt!', 'success');
+    } catch (error) {
+      notificationStore.addNotification('Onjuist wachtwoord opgegeven.', 'danger');
+    }
+  };
+
+  const uploadAvatar = async (uid: string, file: File): Promise<string> => {
+    try {
+      const avatarStorageRef = firebaseStorageRef(storage, `avatars/${uid}`);
+      await uploadBytes(avatarStorageRef, file);
+      notificationStore.addNotification('Avatar succesvol bijgewerkt!', 'success');
+      return await getDownloadURL(avatarStorageRef);
+    } catch (error) {
+      notificationStore.addNotification('Er ging iets fout bij het updaten van uw avatar. Prober het opnieuw.', 'error');
+      throw error;
+    }
+  };
+
+  const updateFirestoreProfile = async (
+    updates: Partial<UserCredentials>
+  ): Promise<void> => {
+    const userDocRef = doc(db, "users", auth.currentUser!.uid);
+    await updateDoc(userDocRef, updates);
+  };
 
   const initializeCards = async (gridSize: number) => {
     if (state.stateLoaded && state.cards.length && state.gridSize === gridSize) return;
@@ -220,7 +289,9 @@ onAuthStateChanged(auth, (currentUser) => {
         await saveState();
       }
     } else {
+      notificationStore.addNotification('Geen netwerk, gegevens uit de localstorage gehaald.', 'warning');
       const savedState = localStorage.getItem('gameState');
+      
       if (savedState) {
         Object.assign(state, JSON.parse(savedState));
       } else {
@@ -241,12 +312,8 @@ onAuthStateChanged(auth, (currentUser) => {
     }
   };
 
-// Dit is het mechanisme om deze functies beschikbaar te stellen als useGameStore in een Component geïnjecteerd wordt (volgens het Singleton principe).
-
-
   return {
     state,
-    handleAuthentication,
     initializeCards,
     handleCardClick,
     resetState,
@@ -254,8 +321,10 @@ onAuthStateChanged(auth, (currentUser) => {
     saveState,
     loadState,
     fetchResults,
+    updateUserProfile,
     user,
     userCredentials,
     loadUserProfile,
+    handleAuthentication
   };
 });
