@@ -8,6 +8,7 @@ import { State, Result, UserCredentials } from '@/models/models';
 import { uploadBytes, getDownloadURL, ref as firebaseStorageRef } from 'firebase/storage';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
 import { useNotificationStore } from './notificationStore'; // Importeer de notificationStore
+import { Card } from '@/models/models';
 
 
 
@@ -312,6 +313,21 @@ export const useGameStore = defineStore('gameStore', () => {
     }
   };
 
+  const getHintCards = (): Card[] => {
+    const availableCards = state.cards.filter(card => !card.exposed);
+    if (availableCards.length < 2) return [];
+  
+    return availableCards.slice(0, 2);
+  };
+
+  const showHint = () => {
+    const hintCards = getHintCards();
+    hintCards.forEach(card => (card.exposed = true));
+    setTimeout(() => {
+      hintCards.forEach(card => (card.exposed = false));
+    }, 1000); // Hint blijft 1 seconde zichtbaar
+  };
+
   return {
     state,
     initializeCards,
@@ -325,6 +341,8 @@ export const useGameStore = defineStore('gameStore', () => {
     user,
     userCredentials,
     loadUserProfile,
-    handleAuthentication
+    handleAuthentication,
+    getHintCards,
+    showHint
   };
 });

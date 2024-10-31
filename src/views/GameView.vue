@@ -63,6 +63,7 @@
     </ion-modal>
 <!-- ResultsComponent Modal -->
 <ResultsComponent :isOpen="componentState.showResults" :results="gameStore.state.results" @close="componentState.showResults = false" />
+<ion-button @click="gameStore.showHint">Toon hint</ion-button>
   </ion-page>
 </template>
 
