@@ -56,6 +56,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'jsdom'
+    environment: 'jsdom',
+    include: ['tests/**/*.test.ts'], // Zorgt dat Vitest alleen de tests-map pakt
   }
 })
