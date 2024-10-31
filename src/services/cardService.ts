@@ -1,5 +1,5 @@
-import { fetchCards } from './api';
-import { Card, CardSet } from '../stores/gameStore';
+import { fetchCards } from './apiService';
+import { Card, CardSet } from '@/models/models';
 
 class CardService {
   async initializeCards(gridSize: number): Promise<Card[]> {

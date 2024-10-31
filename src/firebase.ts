@@ -1,9 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged  } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getMessaging, onMessage, getToken } from 'firebase/messaging';
-
 
 const firebaseConfig = {
     apiKey: "AIzaSyDMBclQnPZrcNsevFZ0IYgTMC_0yzv-74w",
@@ -14,38 +12,26 @@ const firebaseConfig = {
     appId: "1:1089085032321:web:f7680e66059670f1db8a80"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-  
-  export { auth, db, storage, onAuthStateChanged };
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// Wait for Firebase to initialize the auth state
+export const firebaseAuthInitialized = new Promise((resolve, reject) => {
+  onAuthStateChanged(auth, user => {
+    resolve(user);  // Resolve the promise when Firebase is done
+  }, reject);
+});
 
 // Stel de persistentie in (local storage)
-setPersistence(auth, browserLocalPersistence).catch((error) => {
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('Firebase Auth persistence is set to local');
+  })
+  .catch((error) => {
     console.error('Failed to set persistence:', error);
   });
 
-  const messaging = getMessaging(app);
 
-// Vraag toestemming voor meldingen en verkrijg een token
-export const requestForToken = () => {
-  return getToken(messaging, { vapidKey: 'BOt1xkfusvSZsqXH97QibVz-WY5Izw3CH_n7kXxnedPQySKyvcW-rJrqAZ0RBOKp_TzyYr8nVcV8OMjws-IS3pw' }).then((currentToken) => {
-    if (currentToken) {
-      console.log('Huidige token voor client: ', currentToken);
-      // Voer hier eventuele andere noodzakelijke acties uit met de token
-    } else {
-      console.log('Geen registratie token beschikbaar. Vraag toestemming om er een te genereren.');
-    }
-  }).catch((err) => {
-    console.log('Er is een fout opgetreden bij het ophalen van de token. ', err);
-  });
-};
-
-// Luister naar inkomende berichten
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
-  });
+console.log('Current user at start:', auth.currentUser);

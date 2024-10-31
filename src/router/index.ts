@@ -1,11 +1,9 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import HomeView from '@/views/HomeView.vue';
 import GameView from '@/views/GameView.vue';
 import LoginView from '@/views/LoginView.vue';
-import SignUpView from '@/views/SignUpView.vue';
-import StatisticsView from '@/views/StatisticsView.vue';
-import InvitationsView from '@/views/InvitationsView.vue';
+import SignUpView from '@/views/SignupView.vue';
+import { auth, firebaseAuthInitialized } from '@/firebase';
 
 const routes = [
   {
@@ -24,6 +22,11 @@ const routes = [
     },
   },
   {
+    path: '/game/:invitationId', // Dynamische route voor specifieke spellen
+    component: GameView, // Als je dezelfde component gebruikt voor /game en /game/:invitationId
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/login',
     component: LoginView,
   },
@@ -32,35 +35,42 @@ const routes = [
     component: SignUpView,
   },
   {
-    path: '/statistics',
-    component: StatisticsView,
-  },
-  {
-    path: '/invitations',
-    component: InvitationsView,
-  },
+    path: '/:pathMatch(.*)*',
+    redirect: '/game', // Onbekende routes naar /game sturen als gebruiker ingelogd is
+  }
 ];
 
 const router = createRouter({
-  history: createWebHistory('/'),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 
-router.beforeEach((to, from, next) => {
-  const auth = getAuth();
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+// Wait for Firebase auth to initialize before handling routes
+router.beforeEach(async (to, from, next) => {
+  await firebaseAuthInitialized;  // Wacht totdat Firebase auth is geïnitialiseerd
   
-  if (requiresAuth) {
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        next();
-      } else {
-        next('/login');
-      }
-    });
+  const currentUser = auth.currentUser;
+
+  if (currentUser) {
+    // Controleer of de route een dynamische game route is met een invitationId
+    const isGameRoute = to.path.startsWith('/game') && to.params.invitationId;
+
+    if (to.path === '/game' || isGameRoute) {
+      next(); // Sta de gebruiker toe om naar /game of /game/:invitationId te navigeren
+    } else {
+      // Gebruiker is ingelogd, maar navigeert naar een andere route, stuur naar /game
+      next('/game');
+    }
   } else {
-    next();
+    // Als de gebruiker niet is ingelogd en een route met auth probeert te bezoeken
+    if (to.meta.requiresAuth) {
+      next('/home'); // Stuur naar home als de route beveiligd is
+    } else {
+      next(); // Ga door naar de gevraagde route
+    }
   }
 });
+
+
 
 export default router;

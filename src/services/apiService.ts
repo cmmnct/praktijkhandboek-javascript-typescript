@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CardSet } from '../stores/gameStore';
+import { CardSet } from '@/models/models';
 
 const API_URL = 'https://my-json-server.typicode.com/cmmnct/cards/cards';
 
